@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>All-in-One Health App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #eaece8;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .phone-wrap {
+    width: 393px;
+    height: 852px;
+    background: #f7f8f6;
+    border-radius: 54px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.12), inset 0 0 0 2px rgba(255,255,255,0.5);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Dynamic island */
+  .dynamic-island {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 34px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 100;
+  }
+  .status-bar {
+    height: 59px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 10px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+  .status-bar.light { color: #0d3d28; }
+  .status-bar.dark { color: #fff; }
+  .status-time { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .screen-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+  .screen-content::-webkit-scrollbar { display: none; }
+  .bottom-nav {
+    height: 82px;
+    background: rgba(247,248,246,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(0,0,0,0.07);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    padding-top: 10px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 50;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 0 16px;
+    border: none;
+    background: none;
+    font-family: 'DM Sans', sans-serif;
+    transition: transform 0.1s;
+  }
+  .nav-item:active { transform: scale(0.9); }
+  .nav-icon {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nav-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1px;
+  }
+  .nav-item.active .nav-label { color: #13a068; font-weight: 600; }
+  .nav-item:not(.active) .nav-label { color: #999; }
+  .nav-item.active .nav-icon svg path,
+  .nav-item.active .nav-icon svg rect,
+  .nav-item.active .nav-icon svg circle { stroke: #13a068; }
+  .nav-item:not(.active) .nav-icon svg path,
+  .nav-item:not(.active) .nav-icon svg rect,
+  .nav-item:not(.active) .nav-icon svg circle { stroke: #bbb; }
+
+  /* Screen transitions */
+  .screen-enter { animation: slideIn 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  .screen-enter-back { animation: slideInBack 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
+  @keyframes slideInBack { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: translateX(0); } }
+
+  /* Common */
+  .card {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .btn-primary {
+    width: 100%;
+    background: #0d3d28;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 17px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: -0.2px;
+  }
+  .btn-primary:hover { opacity: 0.92; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-green {
+    background: linear-gradient(135deg, #13a068 0%, #0a7a50 100%);
+  }
+  /* Ring SVG */
+  .ring-svg { transform: rotate(-90deg); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ─── SVG Icons ────────────────────────────────────────────────────────────────
+const Icon = ({ name, size = 22, color, strokeWidth = 1.8 }) => {
+  const paths = {
+    home: <><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" strokeLinecap="round" strokeLinejoin="round"/><path d="M9 21V12h6v9" strokeLinecap="round" strokeLinejoin="round"/></>,
+    food: <><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3" strokeLinecap="round" strokeLinejoin="round"/></>,
+    workout: <><path d="M6.5 6.5h11M6.5 17.5h11M3 10h18M3 14h18" strokeLinecap="round"/><circle cx="6.5" cy="12" r="2.5" strokeLinecap="round"/><circle cx="17.5" cy="12" r="2.5" strokeLinecap="round"/></>,
+    star: <><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" strokeLinecap="round" strokeLinejoin="round"/></>,
+    flame: <><path d="M8.5 14.5A4.5 4.5 0 0013 10c0-3-3-5-3-5s1.5 3-1.5 4.5c-1 .5-2 1.5-2 3A4 4 0 0010 16.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 22a6 6 0 006-6c0-4-4-7-4-7s0 2-2 3.5c-.8.5-2 1.5-2 3.5a4 4 0 004 4v2z" strokeLinecap="round" strokeLinejoin="round"/></>,
+    arrow_right: <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>,
+    arrow_left: <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>,
+    check: <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>,
+    x: <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>,
+    refresh: <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" strokeLinecap="round" strokeLinejoin="round"/>,
+    moon: <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" strokeLinecap="round" strokeLinejoin="round"/>,
+    droplet: <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" strokeLinecap="round" strokeLinejoin="round"/>,
+    zap: <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" strokeLinecap="round" strokeLinejoin="round"/></>,
+    footsteps: <><path d="M8 3a2 2 0 00-2 2v2a2 2 0 002 2h1a2 2 0 002-2V5a2 2 0 00-2-2H8zM15 3a2 2 0 00-2 2v2a2 2 0 002 2h1a2 2 0 002-2V5a2 2 0 00-2-2h-1zM7 13a2 2 0 00-2 2v2a2 2 0 002 2h1a2 2 0 002-2v-2a2 2 0 00-2-2H7zM14 13a2 2 0 00-2 2v2a2 2 0 002 2h1a2 2 0 002-2v-2a2 2 0 00-2-2h-1z" strokeLinecap="round" strokeLinejoin="round"/></>,
+    play: <polygon points="5 3 19 12 5 21 5 3" strokeLinecap="round" strokeLinejoin="round"/>,
+    sparkle: <><path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" strokeLinecap="round" strokeLinejoin="round"/><path d="M5 3l.75 2.75L8.5 7l-2.75.75L5 10.5l-.75-2.75L1.5 7l2.75-.75z" strokeLinecap="round" strokeLinejoin="round"/></>,
+    trending: <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" strokeLinecap="round" strokeLinejoin="round"/><polyline points="17 6 23 6 23 12" strokeLinecap="round" strokeLinejoin="round"/></>,
+    timer: <><circle cx="12" cy="12" r="10" strokeLinecap="round"/><polyline points="12 6 12 12 16 14" strokeLinecap="round" strokeLinejoin="round"/></>,
+    user: <><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="7" r="4" strokeLinecap="round"/></>,
+    target: <><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>,
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || 'currentColor'} strokeWidth={strokeWidth}>
+      {paths[name]}
+    </svg>
+  );
+};
+
+// ─── Ring Component ─────────────────────────────────────────────────────────
+const Ring = ({ size, strokeWidth, percent, color, bg = '#f0f0f0', children }) => {
+  const r = (size - strokeWidth) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = circ * Math.min(percent, 1);
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <svg className="ring-svg" width={size} height={size}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={bg} strokeWidth={strokeWidth} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={strokeWidth}
+          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+          style={{ transition: 'stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)' }} />
+      </svg>
+      {children && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Status Bar ──────────────────────────────────────────────────────────────
+const StatusBar = ({ dark }) => (
+  <div className={`status-bar ${dark ? 'dark' : 'light'}`}>
+    <span className="status-time">9:41</span>
+    <div className="status-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12" fill={dark ? '#fff' : '#0d3d28'}>
+        <rect x="0" y="3" width="3" height="9" rx="1" opacity="0.3"/>
+        <rect x="4.5" y="2" width="3" height="10" rx="1" opacity="0.5"/>
+        <rect x="9" y="1" width="3" height="11" rx="1" opacity="0.8"/>
+        <rect x="13.5" y="0" width="3" height="12" rx="1"/>
+      </svg>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill={dark ? '#fff' : '#0d3d28'}>
+        <path d="M8 3C10.5 3 12.7 4 14.3 5.7L15.6 4.4C13.6 2.3 10.9 1 8 1C5.1 1 2.4 2.3.4 4.4l1.3 1.3C3.3 4 5.5 3 8 3z" opacity="0.3"/>
+        <path d="M8 5.5c1.8 0 3.4.7 4.6 1.9l1.3-1.3C12.4 4.4 10.3 3.5 8 3.5S3.6 4.4 2.1 6.1l1.3 1.3C4.6 6.2 6.2 5.5 8 5.5z" opacity="0.6"/>
+        <path d="M8 8c1 0 1.9.4 2.6 1.1l1.3-1.3C10.8 6.7 9.5 6 8 6S5.2 6.7 4.1 7.8l1.3 1.3C6.1 8.4 7 8 8 8z" opacity="0.9"/>
+        <circle cx="8" cy="11" r="1.5"/>
+      </svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+        <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke={dark ? '#fff' : '#0d3d28'} strokeOpacity="0.35"/>
+        <rect x="2" y="2" width="16" height="8" rx="2" fill={dark ? '#fff' : '#0d3d28'}/>
+        <path d="M23 4.5v3a1.5 1.5 0 000-3z" fill={dark ? '#fff' : '#0d3d28'} fillOpacity="0.4"/>
+      </svg>
+    </div>
+  </div>
+);
+
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+const Toast = ({ msg, onDone }) => {
+  useEffect(() => { const t = setTimeout(onDone, 2200); return () => clearTimeout(t); }, []);
+  return (
+    <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', background: '#0d3d28', color: '#fff', borderRadius: 12, padding: '10px 18px', fontSize: 13, fontWeight: 600, zIndex: 999, whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,0.25)', animation: 'toastIn 0.25s ease' }}>
+      {msg}
+    </div>
+  );
+};
+
+// ─── HOME SCREEN ─────────────────────────────────────────────────────────────
+const HomeScreen = ({ onNavigate }) => {
+  const [waterGlasses, setWaterGlasses] = useState(5);
+  const [sleepLogged, setSleepLogged] = useState(false);
+  const [toast, setToast] = useState(null);
+  const showToast = (msg) => setToast(msg);
+
+  return (
+    <div style={{ background: '#f7f8f6', minHeight: '100%' }}>
+      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+      {/* Header */}
+      <div style={{ padding: '4px 24px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <p style={{ fontSize: 13, color: '#13a068', fontWeight: 600, letterSpacing: 0.3, marginBottom: 2 }}>WEDNESDAY, APR 30</p>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0d3d28', letterSpacing: -0.5, lineHeight: 1.1 }}>Good morning,<br/>Alex 👋</h1>
+        </div>
+        <div onClick={() => onNavigate('profile')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+          <div style={{ width: 46, height: 46, borderRadius: 23, background: 'linear-gradient(135deg, #13a068, #0a7a50)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 18, boxShadow: '0 4px 12px rgba(19,160,104,0.35)' }}>A</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <Icon name="flame" size={12} color="#f97316" strokeWidth={2.5}/>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#f97316' }}>12</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Activity Rings */}
+      <div style={{ margin: '0 16px 16px', padding: '20px 20px 18px' }} className="card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+          <span style={{ fontWeight: 700, fontSize: 15, color: '#0d3d28', letterSpacing: -0.3 }}>Daily Activity</span>
+          <span onClick={() => onNavigate('activity')} style={{ fontSize: 12, color: '#13a068', fontWeight: 600, cursor: 'pointer' }}>View all</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          {/* Nested rings */}
+          <div style={{ position: 'relative', width: 110, height: 110 }}>
+            <svg className="ring-svg" width={110} height={110} style={{ position: 'absolute' }}>
+              <circle cx={55} cy={55} r={48} fill="none" stroke="#fde8d8" strokeWidth={11}/>
+              <circle cx={55} cy={55} r={48} fill="none" stroke="#f97316" strokeWidth={11} strokeDasharray={`${2*Math.PI*48*0.72} ${2*Math.PI*48}`} strokeLinecap="round" style={{transition:'stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)'}}/>
+            </svg>
+            <svg className="ring-svg" width={110} height={110} style={{ position: 'absolute' }}>
+              <circle cx={55} cy={55} r={35} fill="none" stroke="#d1fae5" strokeWidth={11}/>
+              <circle cx={55} cy={55} r={35} fill="none" stroke="#13a068" strokeWidth={11} strokeDasharray={`${2*Math.PI*35*0.85} ${2*Math.PI*35}`} strokeLinecap="round" style={{transition:'stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)'}}/>
+            </svg>
+            <svg className="ring-svg" width={110} height={110} style={{ position: 'absolute' }}>
+              <circle cx={55} cy={55} r={22} fill="none" stroke="#e0e8ff" strokeWidth={11}/>
+              <circle cx={55} cy={55} r={22} fill="none" stroke="#6366f1" strokeWidth={11} strokeDasharray={`${2*Math.PI*22*0.6} ${2*Math.PI*22}`} strokeLinecap="round" style={{transition:'stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)'}}/>
+            </svg>
+            <div style={{ position: 'absolute', inset: 0 }}></div>
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 5, background: '#f97316', flexShrink: 0 }}></div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>Move</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#0d3d28' }}>1,440 <span style={{ color: '#9ca3af', fontWeight: 400 }}>/ 2,000</span></span>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 5, background: '#13a068', flexShrink: 0 }}></div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>Exercise</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#0d3d28' }}>34 <span style={{ color: '#9ca3af', fontWeight: 400 }}>/ 40 min</span></span>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 5, background: '#6366f1', flexShrink: 0 }}></div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>Stand</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#0d3d28' }}>7 <span style={{ color: '#9ca3af', fontWeight: 400 }}>/ 12 hrs</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Weekly Goal */}
+      <div style={{ margin: '0 16px 14px' }} className="card">
+        <div style={{ padding: '14px 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#0d3d28', letterSpacing: -0.2 }}>Weekly Goal</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#13a068' }}>3 / 5 days</span>
+          </div>
+          <div style={{ height: 8, background: '#e8f5f0', borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
+            <div style={{ height: '100%', width: '60%', background: 'linear-gradient(90deg, #13a068, #0a7a50)', borderRadius: 6, transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)' }}></div>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {['M','T','W','T','F'].map((d, i) => (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 14, background: i < 3 ? '#13a068' : '#e8ebe8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {i < 3 && <Icon name="check" size={13} color="#fff" strokeWidth={2.5}/>}
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 600, color: i < 3 ? '#13a068' : '#c0c0c0' }}>{d}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Stats Row */}
+      <div style={{ display: 'flex', gap: 10, padding: '0 16px', marginBottom: 14 }}>
+        <div className="card" style={{ flex: 1, padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Icon name="footsteps" size={16} color="#f97316" strokeWidth={1.8}/>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#0d3d28', letterSpacing: -0.5 }}>8,241</div>
+          <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>steps</div>
+        </div>
+        <div className="card" style={{ flex: 1, padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Icon name="droplet" size={16} color="#3b82f6" strokeWidth={1.8}/>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+            <span style={{ fontSize: 20, fontWeight: 800, color: '#0d3d28', letterSpacing: -0.5 }}>{waterGlasses}</span>
+            <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500 }}>/8</span>
+          </div>
+          <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>glasses</div>
+        </div>
+        <div className="card" style={{ flex: 1, padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Icon name="moon" size={16} color="#8b5cf6" strokeWidth={1.8}/>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#0d3d28', letterSpacing: -0.5 }}>7.5</div>
+          <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>hrs sleep</div>
+        </div>
+        <div className="card" style={{ flex: 1, padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Icon name="zap" size={16} color="#eab308" strokeWidth={1.8}/>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#0d3d28', letterSpacing: -0.5 }}>1,680</div>
+          <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>kcal</div>
+        </div>
+      </div>
+
+      {/* Today's Workout */}
+      <div style={{ margin: '0 16px 14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingLeft: 2 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#0d3d28', letterSpacing: -0.3 }}>Today's Workout</span>
+          <span onClick={() => onNavigate('workout')} style={{ fontSize: 12, color: '#13a068', fontWeight: 600, cursor: 'pointer' }}>See plan</span>
+        </div>
+        <div onClick={() => onNavigate('workout')} style={{ background: 'linear-gradient(135deg, #0d3d28 0%, #1a5c3e 100%)', borderRadius: 20, padding: '20px 20px 18px', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, borderRadius: 60, background: 'rgba(255,255,255,0.04)' }}></div>
+          <div style={{ position: 'absolute', bottom: -30, right: 30, width: 80, height: 80, borderRadius: 40, background: 'rgba(255,255,255,0.04)' }}></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+            <div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                <span style={{ background: 'rgba(19,160,104,0.3)', color: '#6ee7b7', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 8, letterSpacing: 0.2 }}>UPPER BODY</span>
+                <span style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 8 }}>45 MIN</span>
+              </div>
+              <h3 style={{ color: '#fff', fontSize: 20, fontWeight: 700, letterSpacing: -0.4, marginBottom: 4 }}>Upper Body<br/>Strength</h3>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>6 exercises • 3 sets each</p>
+            </div>
+            <div style={{ width: 44, height: 44, borderRadius: 22, background: '#13a068', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(19,160,104,0.5)', flexShrink: 0 }}>
+              <Icon name="play" size={16} color="#fff" strokeWidth={2.5}/>
+            </div>
+          </div>
+          {/* Mini exercise list */}
+          <div style={{ display: 'flex', gap: 6 }}>
+            {['Bench Press', 'Pull-ups', 'Rows'].map(ex => (
+              <span key={ex} style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: 500, padding: '4px 8px', borderRadius: 8 }}>{ex}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Nutrition Snapshot */}
+      <div style={{ margin: '0 16px 14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingLeft: 2 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#0d3d28', letterSpacing: -0.3 }}>Nutrition</span>
+          <span onClick={() => onNavigate('nutrition')} style={{ fontSize: 12, color: '#13a068', fontWeight: 600, cursor: 'pointer' }}>Full plan →</span>
+        </div>
+        <div className="card" style={{ padding: '16px 18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+            <Ring size={72} strokeWidth={8} percent={0.76} color="#13a068" bg="#e8f5f0">
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#0d3d28', letterSpacing: -0.5 }}>1,680</div>
+                <div style={{ fontSize: 9, color: '#9ca3af', fontWeight: 500 }}>kcal</div>
+              </div>
+            </Ring>
+            <div style={{ flex: 1 }}>
+              {[
+                { label: 'Protein', val: '145g', max: '165g', pct: 0.88, color: '#ef4444' },
+                { label: 'Carbs', val: '210g', max: '250g', pct: 0.84, color: '#3b82f6' },
+                { label: 'Fats', val: '58g', max: '70g', pct: 0.83, color: '#f59e0b' },
+              ].map(m => (
+                <div key={m.label} style={{ marginBottom: 7 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 500 }}>{m.label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#0d3d28' }}>{m.val}<span style={{ color: '#d1d5db', fontWeight: 400 }}> / {m.max}</span></span>
+                  </div>
+                  <div style={{ height: 5, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${m.pct * 100}%`, background: m.color, borderRadius: 3, transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)' }}></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Log */}
+      <div style={{ margin: '0 16px 20px' }}>
+        <div style={{ paddingLeft: 2, marginBottom: 10 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#0d3d28', letterSpacing: -0.3 }}>Quick Log</span>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {[
+            { label: 'Log Meal', color: '#fff5f0', border: '#ffe4d0', text: '#ea580c', icon: 'food', action: () => onNavigate('nutrition') },
+            { label: 'Add Water', color: '#eff6ff', border: '#dbeafe', text: '#2563eb', icon: 'droplet', action: () => { setWaterGlasses(w => Math.min(w+1, 8)); showToast('💧 Water logged!'); } },
+            { label: sleepLogged ? 'Logged ✓' : 'Log Sleep', color: sleepLogged ? '#f0fdf4' : '#f5f3ff', border: sleepLogged ? '#bbf7d0' : '#ede9fe', text: sleepLogged ? '#16a34a' : '#7c3aed', icon: 'moon', action: () => { setSleepLogged(true); showToast('🌙 Sleep logged!'); } },
+          ].map(q => (
+            <button key={q.label} onClick={q.action} style={{ flex: 1, background: q.color, border: `1px solid ${q.border}`, borderRadius: 14, padding: '12px 8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, transition: 'transform 0.1s' }}
+              onMouseDown={e => e.currentTarget.style.transform='scale(0.95)'}
+              onMouseUp={e => e.currentTarget.style.transform='scale(1)'}
+              onTouchStart={e => e.currentTarget.style.transform='scale(0.95)'}
+              onTouchEnd={e => e.currentTarget.style.transform='scale(1)'}
+            >
+              <Icon name={q.icon} size={20} color={q.text} strokeWidth={2}/>
+              <span style={{ fontSize: 11, fontWeight: 600, color: q.text }}>{q.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── NUTRITION SCREEN ────────────────────────────────────────────────────────
+const MEAL_ALTS = {
+  breakfast: [
+    { name: 'Greek yogurt parfait with berries', cal: 380, macros: { p: 24, c: 42, f: 9 } },
+    { name: 'Avocado toast with poached eggs', cal: 420, macros: { p: 22, c: 38, f: 18 } },
+    { name: 'Overnight oats with banana', cal: 350, macros: { p: 14, c: 58, f: 7 } },
+  ],
+  lunch: [
+    { name: 'Grilled chicken quinoa bowl', cal: 620, macros: { p: 58, c: 62, f: 18 } },
+    { name: 'Turkey & avocado wrap', cal: 540, macros: { p: 42, c: 48, f: 20 } },
+    { name: 'Lentil soup with sourdough', cal: 480, macros: { p: 28, c: 72, f: 8 } },
+  ],
+  snack: [
+    { name: 'Almonds & apple slices', cal: 210, macros: { p: 6, c: 26, f: 12 } },
+    { name: 'Cottage cheese with pineapple', cal: 180, macros: { p: 20, c: 18, f: 3 } },
+    { name: 'Rice cakes with peanut butter', cal: 230, macros: { p: 8, c: 28, f: 10 } },
+  ],
+  dinner: [
+    { name: 'Baked salmon with roasted vegetables', cal: 680, macros: { p: 57, c: 42, f: 19 } },
+    { name: 'Chicken stir-fry with brown rice', cal: 640, macros: { p: 52, c: 68, f: 14 } },
+    { name: 'Beef & veggie tacos (3)', cal: 720, macros: { p: 48, c: 62, f: 24 } },
+  ],
+};
+
+const FOOD_LIBRARY = [
+  { icon: '🥚', name: 'Boiled egg', cal: 78, macros: { p: 6, c: 0, f: 5 } },
+  { icon: '🍌', name: 'Banana', cal: 89, macros: { p: 1, c: 23, f: 0 } },
+  { icon: '🥛', name: 'Whole milk (200ml)', cal: 122, macros: { p: 6, c: 10, f: 7 } },
+  { icon: '🍗', name: 'Chicken breast (100g)', cal: 165, macros: { p: 31, c: 0, f: 4 } },
+  { icon: '🥜', name: 'Peanut butter (1 tbsp)', cal: 94, macros: { p: 4, c: 3, f: 8 } },
+  { icon: '🍚', name: 'White rice (100g)', cal: 130, macros: { p: 3, c: 28, f: 0 } },
+  { icon: '🥦', name: 'Broccoli (100g)', cal: 34, macros: { p: 3, c: 7, f: 0 } },
+  { icon: '🍎', name: 'Apple', cal: 95, macros: { p: 0, c: 25, f: 0 } },
+];
+
+const NutritionScreen = ({ onNavigate }) => {
+  const [accepted, setAccepted] = useState({});
+  const [activeTab, setActiveTab] = useState('today');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [mealIdx, setMealIdx] = useState({ breakfast: 0, lunch: 0, snack: 0, dinner: 0 });
+  const [planAccepted, setPlanAccepted] = useState(false);
+  const [showAddFood, setShowAddFood] = useState(false);
+  const [addedFoods, setAddedFoods] = useState([]);
+  const [toast, setToast] = useState(null);
+  const showToast = (msg) => setToast(msg);
+
+  const baseMeals = [
+    { id: 'breakfast', icon: '🍳', label: 'Breakfast', time: '8:00 AM' },
+    { id: 'lunch', icon: '🥗', label: 'Lunch', time: '12:30 PM' },
+    { id: 'snack', icon: '🥜', label: 'Snack', time: '3:30 PM' },
+    { id: 'dinner', icon: '🍲', label: 'Dinner', time: '7:00 PM' },
+  ];
+
+  const meals = baseMeals.map(m => ({ ...m, ...MEAL_ALTS[m.id][mealIdx[m.id]] }));
+  const filtered = searchQuery ? meals.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()) || m.label.toLowerCase().includes(searchQuery.toLowerCase())) : meals;
+
+  const cycleAlt = (id) => {
+    setMealIdx(prev => ({ ...prev, [id]: (prev[id] + 1) % MEAL_ALTS[id].length }));
+    showToast('✨ Meal swapped!');
+  };
+
+  const totalCal = meals.reduce((s, m) => s + m.cal, 0) + addedFoods.reduce((s, f) => s + f.cal, 0);
+  const totalP = meals.reduce((s,m)=>s+m.macros.p,0) + addedFoods.reduce((s,f)=>s+f.macros.p,0);
+  const totalC = meals.reduce((s,m)=>s+m.macros.c,0) + addedFoods.reduce((s,f)=>s+f.macros.c,0);
+  const totalF = meals.reduce((s,m)=>s+m.macros.f,0) + addedFoods.reduce((s,f)=>s+f.macros.f,0);
+
+  const weekDays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const weekCals = [2180, 1950, 2100, 1870, totalCal, 0, 0];
+  const goalCal = 2200;
+
+  return (
+    <div style={{ background: '#f7f8f6', minHeight: '100%', position: 'relative' }}>
+      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+
+      {/* Add Food Modal */}
+      {showAddFood && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }} onClick={() => setShowAddFood(false)}>
+          <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '0 auto 16px' }}></div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0d3d28', marginBottom: 14 }}>Quick Add Food</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+              {FOOD_LIBRARY.map(f => (
+                <button key={f.name} onClick={() => { setAddedFoods(a => [...a, f]); setShowAddFood(false); showToast(`✅ ${f.name} added!`); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f7f8f6', border: 'none', borderRadius: 12, padding: '11px 14px', cursor: 'pointer', textAlign: 'left', fontFamily: 'DM Sans' }}>
+                  <span style={{ fontSize: 22 }}>{f.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#0d3d28' }}>{f.name}</div>
+                    <div style={{ fontSize: 11, color: '#9ca3af' }}>P {f.macros.p}g · C {f.macros.c}g · F {f.macros.f}g</div>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#13a068' }}>{f.cal} kcal</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div style={{ background: '#fff', padding: '0 20px 16px', borderBottom: '1px solid #f0f0ee' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <button onClick={() => onNavigate('home')} style={{ width: 36, height: 36, borderRadius: 18, background: '#f7f8f6', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Icon name="arrow_left" size={18} color="#0d3d28" strokeWidth={2.2}/>
+          </button>
+          <div style={{ flex: 1 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0d3d28', letterSpacing: -0.4 }}>Nutrition Coach</h1>
+            <p style={{ fontSize: 12, color: '#9ca3af', fontWeight: 400 }}>AI-powered · Today's plan</p>
+          </div>
+          <div style={{ width: 36, height: 36, borderRadius: 18, background: 'linear-gradient(135deg, #13a068, #0a7a50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="sparkle" size={16} color="#fff" strokeWidth={2}/>
+          </div>
+        </div>
+        <div style={{ display: 'flex', background: '#f7f8f6', borderRadius: 10, padding: 3, gap: 2 }}>
+          {['today', 'week', 'goals'].map(t => (
+            <button key={t} onClick={() => setActiveTab(t)} style={{ flex: 1, padding: '7px 4px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, transition: 'all 0.2s', background: activeTab===t ? '#fff' : 'transparent', color: activeTab===t ? '#0d3d28' : '#9ca3af', boxShadow: activeTab===t ? '0 1px 4px rgba(0,0,0,0.1)' : 'none' }}>
+              {t === 'today' ? 'Today' : t === 'week' ? 'Week' : 'Goals'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 16px 100px' }}>
+
+        {/* ── TODAY TAB ── */}
+        {activeTab === 'today' && <>
+          <div className="card" style={{ padding: '18px 20px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+              <Ring size={86} strokeWidth={10} percent={totalCal/goalCal} color="#13a068" bg="#f0faf6">
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: '#0d3d28', letterSpacing: -0.5 }}>{totalCal}</div>
+                  <div style={{ fontSize: 9, color: '#9ca3af', fontWeight: 500 }}>of {goalCal}</div>
+                </div>
+              </Ring>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                  <span style={{ fontSize: 13, color: '#6b7280' }}>Consumed</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#0d3d28' }}>{totalCal} kcal</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <span style={{ fontSize: 13, color: '#6b7280' }}>Remaining</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: totalCal > goalCal ? '#ef4444' : '#13a068' }}>{Math.max(0, goalCal - totalCal)} kcal</span>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ textAlign: 'center', flex: 1, background: '#fff5f5', borderRadius: 10, padding: '7px 4px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#ef4444' }}>{totalP}g</div>
+                    <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>Protein</div>
+                  </div>
+                  <div style={{ textAlign: 'center', flex: 1, background: '#eff6ff', borderRadius: 10, padding: '7px 4px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#3b82f6' }}>{totalC}g</div>
+                    <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>Carbs</div>
+                  </div>
+                  <div style={{ textAlign: 'center', flex: 1, background: '#fffbeb', borderRadius: 10, padding: '7px 4px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#f59e0b' }}>{totalF}g</div>
+                    <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>Fats</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Search bar */}
+          <div style={{ position: 'relative', marginBottom: 14 }}>
+            <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search meals…" style={{ width: '100%', background: '#fff', border: '1.5px solid #e8ebe8', borderRadius: 12, padding: '11px 12px 11px 36px', fontFamily: 'DM Sans', fontSize: 13, color: '#0d3d28', outline: 'none' }}
+              onFocus={e => e.target.style.borderColor='#13a068'}
+              onBlur={e => e.target.style.borderColor='#e8ebe8'}/>
+            {searchQuery && <button onClick={() => setSearchQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16 }}>×</button>}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '0 2px' }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#0d3d28', letterSpacing: -0.3 }}>Meal Plan</span>
+            {searchQuery && <span style={{ fontSize: 12, color: '#9ca3af' }}>{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+            {filtered.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: '#9ca3af', fontSize: 14 }}>No meals match "{searchQuery}"</div>
+            )}
+            {filtered.map(meal => (
+              <div key={meal.id} className="card" style={{ padding: '14px 16px', opacity: accepted[meal.id] ? 0.6 : 1, transition: 'opacity 0.3s' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ width: 46, height: 46, borderRadius: 14, background: '#f7f8f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{meal.icon}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
+                      <div>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#13a068', letterSpacing: 0.2 }}>{meal.label.toUpperCase()} · {meal.time}</span>
+                        <h4 style={{ fontSize: 14, fontWeight: 600, color: '#0d3d28', letterSpacing: -0.2, marginTop: 1 }}>{meal.name}</h4>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4, flexShrink: 0, marginLeft: 8 }}>
+                        <button onClick={() => cycleAlt(meal.id)} style={{ width: 28, height: 28, borderRadius: 10, background: '#f7f8f6', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon name="refresh" size={13} color="#6b7280" strokeWidth={2}/>
+                        </button>
+                        <button onClick={() => { setAccepted(a => ({...a, [meal.id]: !a[meal.id]})); if (!accepted[meal.id]) showToast('✅ Meal logged!'); }} style={{ width: 28, height: 28, borderRadius: 10, background: accepted[meal.id] ? '#dcfce7' : '#f7f8f6', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>
+                          <Icon name="check" size={13} color={accepted[meal.id] ? '#16a34a' : '#d1d5db'} strokeWidth={2.5}/>
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#0d3d28' }}>{meal.cal} kcal</span>
+                      <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 500 }}>P {meal.macros.p}g</span>
+                      <span style={{ fontSize: 12, color: '#3b82f6', fontWeight: 500 }}>C {meal.macros.c}g</span>
+                      <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 500 }}>F {meal.macros.f}g</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {addedFoods.map((f, i) => (
+              <div key={`added-${i}`} className="card" style={{ padding: '14px 16px', border: '1.5px solid #d1fae5' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 46, height: 46, borderRadius: 14, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{f.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#13a068' }}>ADDED</span>
+                    <h4 style={{ fontSize: 14, fontWeight: 600, color: '#0d3d28' }}>{f.name}</h4>
+                    <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#0d3d28' }}>{f.cal} kcal</span>
+                      <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 500 }}>P {f.macros.p}g</span>
+                      <span style={{ fontSize: 12, color: '#3b82f6', fontWeight: 500 }}>C {f.macros.c}g</span>
+                    </div>
+                  </div>
+                  <button onClick={() => setAddedFoods(a => a.filter((_,j) => j!==i))} style={{ width: 28, height: 28, borderRadius: 10, background: '#fff5f5', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="x" size={13} color="#ef4444" strokeWidth={2.5}/>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={() => setShowAddFood(true)} style={{ width: '100%', background: '#fff', border: '2px solid #13a068', borderRadius: 16, padding: '15px', fontFamily: 'DM Sans', fontSize: 16, fontWeight: 700, color: '#13a068', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#13a068" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add Food
+          </button>
+
+          {planAccepted ? (
+            <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 16, padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <Icon name="check" size={20} color="#16a34a" strokeWidth={2.5}/>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#16a34a' }}>Plan accepted! Great work.</span>
+            </div>
+          ) : (
+            <button onClick={() => { setPlanAccepted(true); setAccepted({ breakfast: true, lunch: true, snack: true, dinner: true }); showToast("🎉 Today's plan locked in!"); }} className="btn-primary btn-green">
+              <Icon name="check" size={18} color="#fff" strokeWidth={2.5}/>
+              Accept Today's Plan
+            </button>
+          )}
+        </>}
+
+        {/* ── WEEK TAB ── */}
+        {activeTab === 'week' && <>
+          <div className="card" style={{ padding: '18px 20px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#0d3d28' }}>This Week</span>
+              <span style={{ fontSize: 12, color: '#13a068', fontWeight: 600 }}>Apr 28 – May 4</span>
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 80, marginBottom: 8 }}>
+              {weekDays.map((d, i) => {
+                const cal = weekCals[i];
+                const pct = cal ? Math.min(cal / goalCal, 1) : 0;
+                const isToday = i === 4;
+                return (
+                  <div key={d} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <div style={{ width: '100%', height: 64, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                      <div style={{ width: '100%', height: `${pct * 100}%`, minHeight: cal ? 4 : 0, background: isToday ? '#13a068' : cal ? '#d1fae5' : '#f3f4f6', borderRadius: '4px 4px 0 0', transition: 'height 0.6s ease' }}></div>
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: isToday ? 700 : 500, color: isToday ? '#13a068' : '#9ca3af' }}>{d}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid #f3f4f6' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#0d3d28' }}>5/7</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>days logged</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#0d3d28' }}>2,030</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>avg kcal</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#13a068' }}>92%</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>goal adherence</div>
+              </div>
+            </div>
+          </div>
+          {[
+            { day: 'Monday', cal: 2180, status: 'Over goal', color: '#ef4444' },
+            { day: 'Tuesday', cal: 1950, status: 'On target', color: '#13a068' },
+            { day: 'Wednesday', cal: 2100, status: 'On target', color: '#13a068' },
+            { day: 'Thursday', cal: 1870, status: 'Under goal', color: '#f59e0b' },
+            { day: 'Today', cal: totalCal, status: 'In progress', color: '#3b82f6' },
+          ].map(row => (
+            <div key={row.day} className="card" style={{ padding: '12px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#0d3d28' }}>{row.day}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#0d3d28' }}>{row.cal} kcal</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: row.color, background: row.color + '15', padding: '3px 8px', borderRadius: 8 }}>{row.status}</span>
+              </div>
+            </div>
+          ))}
+        </>}
+
+        {/* ── GOALS TAB ── */}
+        {activeTab === 'goals' && <>
+          <div className="card" style={{ padding: '18px 20px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#0d3d28' }}>Macro Targets</span>
+              <span style={{ fontSize: 12, color: '#13a068', fontWeight: 600 }}>Edit</span>
+            </div>
+            {[
+              { label: 'Daily Calories', current: goalCal, unit: 'kcal', color: '#13a068', pct: totalCal/goalCal },
+              { label: 'Protein', current: 165, unit: 'g', color: '#ef4444', pct: totalP/165 },
+              { label: 'Carbohydrates', current: 250, unit: 'g', color: '#3b82f6', pct: totalC/250 },
+              { label: 'Fats', current: 70, unit: 'g', color: '#f59e0b', pct: totalF/70 },
+            ].map(g => (
+              <div key={g.label} style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, color: '#0d3d28', fontWeight: 600 }}>{g.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#0d3d28' }}>{g.current} {g.unit}</span>
+                </div>
+                <div style={{ height: 8, background: '#f3f4f6', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.min(g.pct, 1) * 100}%`, background: g.color, borderRadius: 4, transition: 'width 0.8s ease' }}></div>
+                </div>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>{Math.round(g.pct * 100)}% of daily goal reached</div>
+              </div>
+            ))}
+          </div>
+          <div className="card" style={{ padding: '16px 20px' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#0d3d28', marginBottom: 12 }}>Diet Type</div>
+            {['Balanced', 'High Protein', 'Low Carb', 'Mediterranean'].map((d, i) => (
+              <div key={d} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < 3 ? '1px solid #f3f4f6' : 'none' }}>
+                <span style={{ fontSize: 13, color: '#0d3d28', fontWeight: i === 0 ? 700 : 400 }}>{d}</span>
+                {i === 0 && <span style={{ fontSize: 11, background: '#dcfce7', color: '#16a34a', padding: '3px 10px', borderRadius: 10, fontWeight: 600 }}>Active</span>}
+              </div>
+            ))}
+          </div>
+        </>}
+      </div>
+    </div>
+  );
+};
+
+// ─── WORKOUT SCREEN ──────────────────────────────────────────────────────────
+const WorkoutScreen = ({ onNavigate }) => {
+  const [started, setStarted] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [completed, setCompleted] = useState({});
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (started) {
+      timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [started]);
+
+  const fmt = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+
+  const exercises = [
+    { id: 'bench', name: 'Bench Press', sets: 3, reps: '10–12', weight: '70 kg', muscle: 'Chest' },
+    { id: 'pullup', name: 'Pull-ups', sets: 3, reps: '8–10', weight: 'Bodyweight', muscle: 'Back' },
+    { id: 'row', name: 'Barbell Row', sets: 3, reps: '10–12', weight: '60 kg', muscle: 'Back' },
+    { id: 'ohp', name: 'Overhead Press', sets: 3, reps: '8–10', weight: '50 kg', muscle: 'Shoulders' },
+    { id: 'curl', name: 'Bicep Curls', sets: 3, reps: '12–15', weight: '15 kg', muscle: 'Arms' },
+    { id: 'tri', name: 'Tricep Dips', sets: 3, reps: '12–15', weight: 'Bodyweight', muscle: 'Arms' },
+  ];
+
+  const doneCount = Object.values(completed).filter(Boolean).length;
+
+  return (
+    <div style={{ background: '#f7f8f6', minHeight: '100%' }}>
+      {/* Hero */}
+      <div style={{ background: 'linear-gradient(160deg, #0d3d28 0%, #1a5c3e 100%)', padding: '0 20px 22px', color: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+          <button onClick={() => onNavigate('home')} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.12)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Icon name="arrow_left" size={18} color="#fff" strokeWidth={2.2}/>
+          </button>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600, letterSpacing: 0.5 }}>TODAY · UPPER BODY</p>
+            <h1 style={{ fontSize: 20, fontWeight: 700, letterSpacing: -0.4 }}>Strength Training</h1>
+          </div>
+          {started && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(19,160,104,0.25)', borderRadius: 12, padding: '6px 12px' }}>
+              <div style={{ width: 6, height: 6, borderRadius: 3, background: '#6ee7b7', animation: 'pulse 1.5s infinite' }}></div>
+              <span style={{ fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#6ee7b7' }}>{fmt(seconds)}</span>
+            </div>
+          )}
+        </div>
+        {/* Stats row */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          {[
+            { label: 'Duration', val: '45 min' },
+            { label: 'Exercises', val: '6' },
+            { label: 'Sets', val: '18' },
+            { label: 'Est. burn', val: '320 kcal' },
+          ].map(s => (
+            <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{s.val}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      {doneCount > 0 && (
+        <div style={{ padding: '12px 16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ flex: 1, height: 5, background: '#e8ebe8', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${(doneCount/exercises.length)*100}%`, background: '#13a068', borderRadius: 3, transition: 'width 0.4s' }}></div>
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#13a068' }}>{doneCount}/{exercises.length}</span>
+        </div>
+      )}
+
+      {/* Exercise list */}
+      <div style={{ padding: '14px 16px 100px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {exercises.map((ex, i) => (
+            <div key={ex.id} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, opacity: completed[ex.id] ? 0.55 : 1, transition: 'opacity 0.3s' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 16, background: completed[ex.id] ? '#dcfce7' : '#f7f8f6', border: `2px solid ${completed[ex.id] ? '#16a34a' : '#e5e7eb'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', transition: 'all 0.2s' }}
+                onClick={() => setCompleted(c => ({...c, [ex.id]: !c[ex.id]}))}>
+                {completed[ex.id]
+                  ? <Icon name="check" size={14} color="#16a34a" strokeWidth={2.5}/>
+                  : <span style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af' }}>{i+1}</span>}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#0d3d28', letterSpacing: -0.2 }}>{ex.name}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', background: '#f3f4f6', padding: '2px 6px', borderRadius: 6 }}>{ex.muscle}</span>
+                </div>
+                <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500 }}>{ex.sets} sets · {ex.reps} reps · {ex.weight}</span>
+              </div>
+              <div style={{ width: 8, height: 8, borderRadius: 4, background: completed[ex.id] ? '#13a068' : '#e5e7eb', transition: 'background 0.2s' }}></div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 18 }}>
+          <button className="btn-primary" style={{ background: started ? '#fff' : undefined, color: started ? '#0d3d28' : undefined, border: started ? '1.5px solid #e5e7eb' : 'none' }}
+            onClick={() => setStarted(s => !s)}
+            style={{ width: '100%', background: started ? '#fff' : '#0d3d28', color: started ? '#0d3d28' : '#fff', border: started ? '1.5px solid #e5e7eb' : 'none', borderRadius: 16, padding: '17px', fontFamily: 'DM Sans', fontSize: 16, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}>
+            {started
+              ? <><Icon name="x" size={18} color="#6b7280" strokeWidth={2.5}/> Pause Workout</>
+              : <><Icon name="play" size={18} color="#fff" strokeWidth={2.5}/> Start Workout</>}
+          </button>
+        </div>
+      </div>
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
+    </div>
+  );
+};
+
+// ─── PREMIUM SCREEN ──────────────────────────────────────────────────────────
+const PremiumScreen = ({ onNavigate }) => {
+  const [billing, setBilling] = useState('monthly');
+  const [trialStarted, setTrialStarted] = useState(false);
+
+  const features = [
+    { icon: 'sparkle', title: 'Unlimited AI Meal Plans', desc: 'Custom nutrition plans updated daily to match your goals.' },
+    { icon: 'trending', title: 'Advanced Analytics', desc: 'Deep insights on trends, patterns, and progress over time.' },
+    { icon: 'user', title: '1-on-1 Coach Support', desc: 'Direct access to certified health and fitness coaches.' },
+    { icon: 'target', title: '500+ Workout Videos', desc: 'Guided programs for every level and goal.' },
+  ];
+
+  return (
+    <div style={{ background: 'linear-gradient(170deg, #050f0a 0%, #0a2419 50%, #0d3020 100%)', minHeight: '100%', color: '#fff' }}>
+      <div style={{ padding: '0 22px 100px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <button onClick={() => onNavigate('home')} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.08)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Icon name="x" size={18} color="rgba(255,255,255,0.7)" strokeWidth={2}/>
+          </button>
+        </div>
+
+        {/* Badge */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 20, padding: '6px 14px' }}>
+            <Icon name="sparkle" size={14} color="#fbbf24" strokeWidth={2}/>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24', letterSpacing: 1 }}>PREMIUM</span>
+          </div>
+        </div>
+
+        <h1 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', letterSpacing: -0.8, lineHeight: 1.2, marginBottom: 10 }}>
+          Join Our Community of 18,400 Members
+        </h1>
+        <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6, marginBottom: 28, fontWeight: 400 }}>
+          Join thousands of people who transformed their bodies with personalised guidance. Get access to the experience trusted daily by people who share your goals.
+        </p>
+
+        {/* Features */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+          {features.map(f => (
+            <div key={f.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: '14px 16px', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 12, background: 'rgba(19,160,104,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name={f.icon} size={16} color="#6ee7b7" strokeWidth={2}/>
+              </div>
+              <div>
+                <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 3, letterSpacing: -0.2 }}>{f.title}</h4>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5, fontWeight: 400 }}>{f.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Social proof */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 22 }}>
+          <div style={{ display: 'flex' }}>
+            {['A','B','C','D'].map((l,i) => (
+              <div key={l} style={{ width: 24, height: 24, borderRadius: 12, background: `hsl(${i*40+140},50%,35%)`, border: '2px solid #0a2419', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, marginLeft: i > 0 ? -8 : 0 }}>{l}</div>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}><b style={{ color: '#fff' }}>18,400</b> members this month</p>
+        </div>
+
+        {/* Billing toggle */}
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 4, gap: 4, marginBottom: 16 }}>
+          {['monthly', 'annual'].map(b => (
+            <button key={b} onClick={() => setBilling(b)} style={{ flex: 1, padding: '10px', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, borderRadius: 9, transition: 'all 0.2s', background: billing===b ? '#13a068' : 'transparent', color: billing===b ? '#fff' : 'rgba(255,255,255,0.4)' }}>
+              {b === 'monthly' ? 'Monthly' : 'Annual'}
+              {b === 'annual' && <span style={{ marginLeft: 4, fontSize: 10, background: '#fbbf24', color: '#0a2419', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>-40%</span>}
+            </button>
+          ))}
+        </div>
+
+        {/* Pricing */}
+        <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: '16px 20px', border: '1px solid rgba(255,255,255,0.09)', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1 }}>{billing === 'monthly' ? '€12' : '€7'}</span>
+              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>/month</span>
+            </div>
+            {billing === 'annual' && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Billed €84/year</p>}
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 12, color: '#6ee7b7', fontWeight: 600, marginBottom: 2 }}>7-day free trial</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Cancel anytime</div>
+          </div>
+        </div>
+
+        {trialStarted ? (
+          <div style={{ background: '#f0fdf4', border: '2px solid #86efac', borderRadius: 16, padding: '20px', textAlign: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a', marginBottom: 4 }}>Trial Started!</div>
+            <div style={{ fontSize: 13, color: '#4ade80' }}>7 days free · Cancel anytime</div>
+          </div>
+        ) : (
+          <button onClick={() => setTrialStarted(true)} style={{ width: '100%', background: 'linear-gradient(135deg, #13a068 0%, #0a7a50 100%)', color: '#fff', border: 'none', borderRadius: 16, padding: '17px', fontFamily: 'DM Sans', fontSize: 16, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 8px 24px rgba(19,160,104,0.4)', letterSpacing: -0.2, marginBottom: 12 }}>
+            Start Free Trial
+            <Icon name="arrow_right" size={18} color="#fff" strokeWidth={2.5}/>
+          </button>
+        )}
+
+        <p style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.2)', lineHeight: 1.5 }}>
+          By continuing you agree to our Terms of Service.<br/>Subscription auto-renews unless cancelled.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// ─── PROFILE SCREEN ──────────────────────────────────────────────────────────
+const ProfileScreen = ({ onNavigate }) => {
+  const [notifications, setNotifications] = useState(true);
+  const [units, setUnits] = useState('metric');
+  const [toast, setToast] = useState(null);
+
+  const stats = [
+    { label: 'Weight', val: '78 kg', sub: '−2 kg this month' },
+    { label: 'Height', val: '182 cm', sub: '' },
+    { label: 'BMI', val: '23.6', sub: 'Healthy' },
+    { label: 'Body Fat', val: '14%', sub: '−1% this month' },
+  ];
+
+  return (
+    <div style={{ background: '#f7f8f6', minHeight: '100%' }}>
+      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+      <div style={{ background: 'linear-gradient(160deg, #0d3d28, #1a5c3e)', padding: '0 20px 28px', color: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+          <button onClick={() => onNavigate('home')} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.12)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Icon name="arrow_left" size={18} color="#fff" strokeWidth={2.2}/>
+          </button>
+          <h1 style={{ fontSize: 20, fontWeight: 700, flex: 1 }}>Profile</h1>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 32, background: 'linear-gradient(135deg, #6ee7b7, #13a068)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#0d3d28', border: '3px solid rgba(255,255,255,0.3)' }}>A</div>
+          <div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 2 }}>Alex Johnson</h2>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>alex@email.com</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+              <Icon name="flame" size={13} color="#f97316" strokeWidth={2.5}/>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>12-day streak</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 16px 100px' }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+          {stats.map(s => (
+            <div key={s.label} className="card" style={{ flex: 1, padding: '12px 10px', textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#0d3d28' }}>{s.val}</div>
+              <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500, marginTop: 2 }}>{s.label}</div>
+              {s.sub && <div style={{ fontSize: 9, color: '#13a068', fontWeight: 600, marginTop: 2 }}>{s.sub}</div>}
+            </div>
+          ))}
+        </div>
+
+        {[
+          { title: 'Goal', val: 'Lose weight', icon: 'target' },
+          { title: 'Activity level', val: 'Moderately active', icon: 'workout' },
+          { title: 'Weekly workouts', val: '5 days / week', icon: 'timer' },
+        ].map(row => (
+          <div key={row.title} className="card" style={{ padding: '14px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={row.icon} size={16} color="#13a068" strokeWidth={2}/>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>{row.title}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#0d3d28' }}>{row.val}</div>
+            </div>
+            <Icon name="arrow_right" size={16} color="#d1d5db" strokeWidth={2}/>
+          </div>
+        ))}
+
+        <div className="card" style={{ padding: '16px', marginTop: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 14, borderBottom: '1px solid #f3f4f6', marginBottom: 14 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#0d3d28' }}>Push Notifications</span>
+            <div onClick={() => setNotifications(n => !n)} style={{ width: 46, height: 26, borderRadius: 13, background: notifications ? '#13a068' : '#d1d5db', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+              <div style={{ width: 20, height: 20, borderRadius: 10, background: '#fff', position: 'absolute', top: 3, left: notifications ? 23 : 3, transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}></div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#0d3d28' }}>Units</span>
+            <div style={{ display: 'flex', background: '#f7f8f6', borderRadius: 8, padding: 3, gap: 2 }}>
+              {['metric', 'imperial'].map(u => (
+                <button key={u} onClick={() => setUnits(u)} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, background: units===u ? '#fff' : 'transparent', color: units===u ? '#0d3d28' : '#9ca3af', boxShadow: units===u ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+                  {u.charAt(0).toUpperCase() + u.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <button onClick={() => setToast('👋 Logged out')} style={{ width: '100%', marginTop: 12, background: '#fff', border: '1.5px solid #fecaca', borderRadius: 14, padding: '14px', fontFamily: 'DM Sans', fontSize: 14, fontWeight: 600, color: '#ef4444', cursor: 'pointer' }}>
+          Log Out
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── ACTIVITY SCREEN ─────────────────────────────────────────────────────────
+const ActivityScreen = ({ onNavigate }) => {
+  const days = ['M','T','W','T','F','S','S'];
+  const steps = [7200, 9100, 6800, 11200, 8241, 0, 0];
+  const maxSteps = Math.max(...steps);
+
+  return (
+    <div style={{ background: '#f7f8f6', minHeight: '100%' }}>
+      <div style={{ background: '#fff', padding: '0 20px 16px', borderBottom: '1px solid #f0f0ee' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => onNavigate('home')} style={{ width: 36, height: 36, borderRadius: 18, background: '#f7f8f6', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Icon name="arrow_left" size={18} color="#0d3d28" strokeWidth={2.2}/>
+          </button>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0d3d28' }}>Activity</h1>
+        </div>
+      </div>
+      <div style={{ padding: '16px 16px 100px' }}>
+        {[
+          { label: 'Move', val: '1,440', max: '2,000', unit: 'cal', pct: 0.72, color: '#f97316', bg: '#fff7ed' },
+          { label: 'Exercise', val: '34', max: '40', unit: 'min', pct: 0.85, color: '#13a068', bg: '#f0fdf4' },
+          { label: 'Stand', val: '7', max: '12', unit: 'hrs', pct: 0.58, color: '#6366f1', bg: '#f5f3ff' },
+          { label: 'Steps', val: '8,241', max: '10,000', unit: 'steps', pct: 0.82, color: '#f59e0b', bg: '#fffbeb' },
+        ].map(r => (
+          <div key={r.label} className="card" style={{ padding: '16px 18px', marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500, marginBottom: 2 }}>{r.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#0d3d28', letterSpacing: -0.5 }}>{r.val} <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 400 }}>{r.unit}</span></div>
+              </div>
+              <div style={{ background: r.bg, borderRadius: 10, padding: '4px 10px' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: r.color }}>{Math.round(r.pct*100)}%</span>
+              </div>
+            </div>
+            <div style={{ height: 8, background: '#f3f4f6', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${r.pct*100}%`, background: r.color, borderRadius: 4 }}></div>
+            </div>
+            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 5 }}>Goal: {r.max} {r.unit}</div>
+          </div>
+        ))}
+
+        <div className="card" style={{ padding: '18px 20px', marginBottom: 10 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#0d3d28', marginBottom: 14 }}>Steps This Week</div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 80, marginBottom: 8 }}>
+            {days.map((d, i) => {
+              const pct = steps[i] ? steps[i] / maxSteps : 0;
+              const isToday = i === 4;
+              return (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ width: '100%', height: 72, display: 'flex', alignItems: 'flex-end' }}>
+                    <div style={{ width: '100%', height: `${pct * 100}%`, minHeight: steps[i] ? 4 : 0, background: isToday ? '#f97316' : steps[i] ? '#fed7aa' : '#f3f4f6', borderRadius: '4px 4px 0 0' }}></div>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: isToday ? 700 : 500, color: isToday ? '#f97316' : '#9ca3af' }}>{d}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── BOTTOM NAV ──────────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { id: 'home', label: 'Home', icon: 'home' },
+  { id: 'nutrition', label: 'Nutrition', icon: 'food' },
+  { id: 'workout', label: 'Workout', icon: 'workout' },
+  { id: 'premium', label: 'Premium', icon: 'star' },
+];
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+const App = () => {
+  const [screen, setScreen] = useState('home');
+  const [prevScreen, setPrevScreen] = useState(null);
+  const [key, setKey] = useState(0);
+
+  const isDark = screen === 'premium';
+  const hideNav = screen === 'profile' || screen === 'activity';
+
+  const navigate = (s) => {
+    setPrevScreen(screen);
+    setScreen(s);
+    setKey(k => k + 1);
+  };
+
+  return (
+    <div className="phone-wrap">
+      <div className="dynamic-island"></div>
+      <StatusBar dark={isDark}/>
+      <div className="screen-content" key={key}>
+        <div className="screen-enter">
+          {screen === 'home' && <HomeScreen onNavigate={navigate}/>}
+          {screen === 'nutrition' && <NutritionScreen onNavigate={navigate}/>}
+          {screen === 'workout' && <WorkoutScreen onNavigate={navigate}/>}
+          {screen === 'premium' && <PremiumScreen onNavigate={navigate}/>}
+          {screen === 'profile' && <ProfileScreen onNavigate={navigate}/>}
+          {screen === 'activity' && <ActivityScreen onNavigate={navigate}/>}
+        </div>
+      </div>
+      {!hideNav && <div className="bottom-nav" style={{ background: isDark ? 'rgba(5,15,10,0.97)' : undefined, borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : undefined }}>
+        {NAV_ITEMS.map(item => (
+          <button key={item.id} onClick={() => navigate(item.id)} className={`nav-item ${screen === item.id ? 'active' : ''}`}
+            style={{ '--active-color': '#13a068' }}>
+            <div className="nav-icon">
+              <Icon name={item.icon} size={22} color={screen===item.id ? '#13a068' : isDark ? 'rgba(255,255,255,0.3)' : '#c0c0c0'} strokeWidth={screen===item.id ? 2.2 : 1.8}/>
+            </div>
+            <span className="nav-label" style={{ color: screen===item.id ? '#13a068' : isDark ? 'rgba(255,255,255,0.35)' : '#bbb' }}>{item.label}</span>
+          </button>
+        ))}
+      </div>}
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
